@@ -1,0 +1,36 @@
+body{
+    background-color: #303030;
+}
+
+img{
+    max-width: 95%;
+    max-height: 95%;
+	user-drag: none;
+}
+
+.board{
+    text-align: center;
+    transform: translateY(25px);
+}
+
+.piece{
+
+}
+.light-square, .dark-square{
+    display: inline-block;
+    width: 11vw;
+    height: 11vw;
+    max-width: 80px;
+    max-height: 80px;
+    padding: 0;
+    margin: 0;
+    margin-bottom: -4px;
+}
+
+.light-square{
+    background-color: #bee6ca;
+}
+
+.dark-square{
+    background-color: #1d6150;
+}

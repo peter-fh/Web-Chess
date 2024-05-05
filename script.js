@@ -54,22 +54,22 @@ function fenToBoard(fen) {
 }
 
 
-/* function boardToFen(board, turn){
+function boardToFen(board, turn) {
         var fen = "";
         let empty = 0;
-        for (let i=0; i < 64; i++){
-                if (board[i] == ' '){
+        for (let i = 0; i < 64; i++) {
+                if (board[i] == ' ') {
                         empty++;
                 } else {
-                        if (empty){
+                        if (empty) {
                                 fen += empty;
                         }
                         fen += board[i];
                         empty = 0;
                 }
 
-                if ((i + 1) % 8 == 0 && i != 63){
-                        if (empty){
+                if ((i + 1) % 8 == 0 && i != 63) {
+                        if (empty) {
                                 fen += empty;
                         }
                         fen += "/";
@@ -79,14 +79,14 @@ function fenToBoard(fen) {
         }
 
         fen += " ";
-        if (turn == 0){
+        if (turn == 0) {
                 fen += "w";
         } else {
                 fen += "b";
         }
 
         return fen;
-} */
+}
 
 
 function makePiece(piece, index, board) {
@@ -102,8 +102,6 @@ function makePiece(piece, index, board) {
 
 
 function drawBoard(board, turn) {
-
-
         const board_div = document.getElementById('board');
 
         board_div.setAttribute('turn', turn);
@@ -640,10 +638,79 @@ function validateBoard(board) {
 
 }
 
+function encodeFen(fen) {
+        const map = new Map();
+        let encoded_fen = "";
+        map.set("/", "_");
+        map.set(" ", "+");
+        for (const c of fen) {
+                if (map.has(c)) {
+                        encoded_fen += map.get(c);
+                } else {
+                        encoded_fen += c;
+                }
+        }
+        return encoded_fen;
+
+}
+
+function fetchMove(board, turn) {
+        let fen = boardToFen(board, turn);
+        let encoded_fen = encodeFen(fen);
+        let url = 'http://127.0.0.1:5000/' + encoded_fen;
+        console.log('sending request: ', url)
+        return new Promise((resolve, reject) => {
+
+                fetch(url)
+                        .then(response => {
+                                if (!response.ok) {
+                                        throw new Error("Error: fetch failed");
+                                }
+                                return response.text();
+                        })
+                        .then(data => {
+                                console.log('recieved: ', data)
+                                resolve(data);
+                        })
+                        .then(error => {
+                                if (error) {
+                                        console.log('Error: fetch returned error')
+                                        reject(error);
+                                }
+                        })
+        })
+}
+
+
+function replaceBoard(fen) {
+        const board_div = document.getElementById('board');
+        while (board_div.firstChild) {
+                board_div.removeChild(board_div.firstChild);
+        }
+        [board, turn] = fenToBoard(fen);
+        drawBoard(board, turn);
+}
+
+
+function makeEngineMove(board, turn) {
+        fetchMove(board, turn)
+                .then(output_fen => {
+                        try {
+                                replaceBoard(output_fen);
+                        } catch (error) {
+                                console.log('could not make board with fen:', output_fen)
+                                drawBoard(board, turn)
+                        }
+                        waiting_for_engine = false;
+                })
+}
+
+
 function onPickup(img, event) {
         img.setAttribute('selected', 'true');
 
-        let squareRect = document.getElementsByClassName('light-square')[0].getBoundingClientRect();
+        let squareRect = document.getElementsByClassName('light-square')[0]
+                .getBoundingClientRect();
         let squareSize = squareRect.width;
         img.style.position = 'absolute';
         img.style.left = event.pageX - squareSize / 1.75 + 'px';
@@ -657,6 +724,8 @@ function onPickup(img, event) {
 
 // TODO: check for win
 // TODO: end screen
+//
+var waiting_for_engine = false;
 function onDrop(img, event, board) {
         console.assert(validateBoard(board));
         console.assert(img.getAttribute('selected') == 'true');
@@ -696,6 +765,8 @@ function onDrop(img, event, board) {
                 } else {
                         board_div.setAttribute('turn', 'w');
                 }
+                waiting_for_engine = true;
+                makeEngineMove(board, board_div.getAttribute('turn'))
 
         } else {
                 //console.log("check boolean: ", checkBool);
@@ -712,7 +783,7 @@ function onDrop(img, event, board) {
 function onClick(img, event, board) {
         if (img.getAttribute('selected') == 'true') {
                 onDrop(img, event, board);
-        } else {
+        } else if (!waiting_for_engine) {
                 var board_div = document.getElementById('board');
                 if (isWhite(img.getAttribute('type')) && board_div.getAttribute('turn') == 'b') {
                         return;
@@ -745,12 +816,11 @@ function onMouseMove(e) {
 }
 
 
+
+
 var fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 
 let [board, turn] = fenToBoard(fen);
 drawBoard(board, turn);
 document.addEventListener('mousemove', (e) => { onMouseMove(e); });
-
-
-

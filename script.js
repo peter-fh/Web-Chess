@@ -1,3 +1,4 @@
+// TODO: refactor this ugly mess
 function isNumber(c) { return !isNaN(parseInt(c)); }
 
 
@@ -223,6 +224,9 @@ function castle(king_index, board) {
 // TODO: add horsie check
 // TODO: add king check
 // TODO: debug down left diagonal (king bottom left of queen)
+// TODO: debug thinking king is in check when its not (hard to recreate):
+// Screenshot 2024-05-05 at 5.25.07 PM.png
+// Screenshot 2024-05-05 at 5.42.14 PM.png
 function inCheck(img, game, from, to) {
 
         var newGame = game.slice();
@@ -672,12 +676,12 @@ function fetchMove(board, turn) {
                                 console.log('recieved: ', data)
                                 resolve(data);
                         })
-                        .then(error => {
-                                if (error) {
-                                        console.log('Error: fetch returned error')
-                                        reject(error);
-                                }
+                        .catch(error => {
+                                console.log('Error: fetch returned error')
+                                waiting_for_engine = false;
+                                reject(error);
                         })
+                        
         })
 }
 
@@ -703,6 +707,9 @@ function makeEngineMove(board, turn) {
                         }
                         waiting_for_engine = false;
                 })
+                .catch(error => {
+                        waiting_for_engine = false;
+                })
 }
 
 
@@ -725,7 +732,6 @@ function onPickup(img, event) {
 // TODO: check for win
 // TODO: end screen
 //
-var waiting_for_engine = false;
 function onDrop(img, event, board) {
         console.assert(validateBoard(board));
         console.assert(img.getAttribute('selected') == 'true');
@@ -819,7 +825,7 @@ function onMouseMove(e) {
 
 
 var fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
-
+var waiting_for_engine = false;
 
 let [board, turn] = fenToBoard(fen);
 drawBoard(board, turn);

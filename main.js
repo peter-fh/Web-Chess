@@ -1,8 +1,10 @@
-// TODO: refactor this ugly mess
-function isNumber(c) { return !isNaN(parseInt(c)); }
+// TODO: refactor this ugly, buggy mess
+
+import { isPiece, fenToBoard, boardToFen } from './chess.js'
 
 
-function isPiece(c) { return c != ' '; }
+
+
 
 
 function getPieceImgURL(piece) {
@@ -25,69 +27,6 @@ function getPieceImgURL(piece) {
 }
 
 
-function fenToBoard(fen) {
-        let index = 63;
-        let board = [];
-        let c = fen.charAt(0);
-        let i = 0;
-        while (c != ' ') {
-                if (isNumber(c)) {
-                        for (let i = 0; i < parseInt(c); i++) {
-                                board[63 - index] = ' ';
-                                index--;
-                        }
-                } else if (c === '/') {
-                        board[63 - index] = ' ';
-                } else {
-                        board[63 - index] = c;
-                        index--;
-                }
-                i++;
-                c = fen.charAt(i);
-        }
-
-        i++;
-        c = fen.charAt(i);
-        let turn = c;
-
-        return [board, turn];
-
-}
-
-
-function boardToFen(board, turn) {
-        var fen = "";
-        let empty = 0;
-        for (let i = 0; i < 64; i++) {
-                if (board[i] == ' ') {
-                        empty++;
-                } else {
-                        if (empty) {
-                                fen += empty;
-                        }
-                        fen += board[i];
-                        empty = 0;
-                }
-
-                if ((i + 1) % 8 == 0 && i != 63) {
-                        if (empty) {
-                                fen += empty;
-                        }
-                        fen += "/";
-                        empty = 0;
-
-                }
-        }
-
-        fen += " ";
-        if (turn == 0) {
-                fen += "w";
-        } else {
-                fen += "b";
-        }
-
-        return fen;
-}
 
 
 function makePiece(piece, index, board) {
@@ -137,7 +76,7 @@ function drawBoard(board, turn) {
                                 square.appendChild(img);
                         }
                 } catch (error) {
-                        console.log('everything broke!!!!!! (making a square in board creation)');
+                        console.log('everything broke!!!!!! (making a square in board creation)', error);
                 }
                 if (i === 0) {
                         square.style.borderRadius = "10px 0px 0px 0px";
@@ -220,13 +159,13 @@ function castle(king_index, board) {
 
 
 }
-
 // TODO: add horsie check
 // TODO: add king check
 // TODO: debug down left diagonal (king bottom left of queen)
 // TODO: debug thinking king is in check when its not (hard to recreate):
-// Screenshot 2024-05-05 at 5.25.07 PM.png
-// Screenshot 2024-05-05 at 5.42.14 PM.png
+// Screenshot 2024-05-05 at 5.25.07PM.png
+// Screenshot 2024-05-05 at 5.42.14PM.png
+
 function inCheck(img, game, from, to) {
 
         var newGame = game.slice();
@@ -608,6 +547,8 @@ function isLegalMove(img, game, from, to) {
 
         return false;
 }
+
+
 function validate() {
 
         var valid = true;
@@ -619,6 +560,8 @@ function validate() {
         }
         return valid;
 }
+
+
 function validateBoard(board) {
         var valid = true;
         for (let i = 0; i < 64; i++) {
@@ -642,35 +585,29 @@ function validateBoard(board) {
 
 }
 
-function encodeFen(fen) {
-        const map = new Map();
-        let encoded_fen = "";
-        map.set("/", "_");
-        map.set(" ", "+");
-        for (const c of fen) {
-                if (map.has(c)) {
-                        encoded_fen += map.get(c);
-                } else {
-                        encoded_fen += c;
-                }
-        }
-        return encoded_fen;
 
-}
 
 function fetchMove(board, turn) {
         let fen = boardToFen(board, turn);
-        let encoded_fen = encodeFen(fen);
-        let url = 'http://127.0.0.1:5000/' + encoded_fen;
+        //let encoded_fen = encodeFen(fen);
+        let url = '';
         console.log('sending request: ', url)
         return new Promise((resolve, reject) => {
 
-                fetch(url)
+                fetch('http://127.0.0.1:6969/get_engine_move', {
+                        method: 'POST',
+                        headers: {
+                                'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(fen)
+                })
                         .then(response => {
                                 if (!response.ok) {
                                         throw new Error("Error: fetch failed");
                                 }
-                                return response.text();
+                                var data = response.json();
+                                console.log("data: ", data)
+                                //return ""
                         })
                         .then(data => {
                                 console.log('recieved: ', data)
@@ -681,7 +618,7 @@ function fetchMove(board, turn) {
                                 waiting_for_engine = false;
                                 reject(error);
                         })
-                        
+
         })
 }
 
@@ -702,13 +639,14 @@ function makeEngineMove(board, turn) {
                         try {
                                 replaceBoard(output_fen);
                         } catch (error) {
-                                console.log('could not make board with fen:', output_fen)
+                                console.log('could not make board with fen:', output_fen, error)
                                 drawBoard(board, turn)
                         }
                         waiting_for_engine = false;
                 })
                 .catch(error => {
                         waiting_for_engine = false;
+                        console.log(error)
                 })
 }
 
@@ -731,7 +669,6 @@ function onPickup(img, event) {
 
 // TODO: check for win
 // TODO: end screen
-//
 function onDrop(img, event, board) {
         console.assert(validateBoard(board));
         console.assert(img.getAttribute('selected') == 'true');
@@ -816,6 +753,7 @@ function onMouseMove(e) {
                 moved_piece.style.left = e.pageX - moved_piece.width / 1.75 + 'px';
                 moved_piece.style.top = e.pageY - moved_piece.width + 'px';
         } catch (error) {
+                console.log(error)
                 return;
         }
 

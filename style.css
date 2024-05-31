@@ -5,7 +5,7 @@ body{
 img{
     max-width: 95%;
     max-height: 95%;
-	user-drag: none;
+    user-drag: none;
 }
 
 .board{

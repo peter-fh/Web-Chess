@@ -1,10 +1,8 @@
 // TODO: refactor this ugly, buggy mess
-
-import { isPiece, fenToBoard, boardToFen } from './chess.js'
-
+function isNumber(c) { return !isNaN(parseInt(c)); }
 
 
-
+function isPiece(c) { return c != ' '; }
 
 
 function getPieceImgURL(piece) {
@@ -27,6 +25,69 @@ function getPieceImgURL(piece) {
 }
 
 
+function fenToBoard(fen) {
+        let index = 63;
+        let board = [];
+        let c = fen.charAt(0);
+        let i = 0;
+        while (c != ' ') {
+                if (isNumber(c)) {
+                        for (let i = 0; i < parseInt(c); i++) {
+                                board[63 - index] = ' ';
+                                index--;
+                        }
+                } else if (c === '/') {
+                        board[63 - index] = ' ';
+                } else {
+                        board[63 - index] = c;
+                        index--;
+                }
+                i++;
+                c = fen.charAt(i);
+        }
+
+        i++;
+        c = fen.charAt(i);
+        let turn = c;
+
+        return [board, turn];
+
+}
+
+
+function boardToFen(board, turn) {
+        var fen = "";
+        let empty = 0;
+        for (let i = 0; i < 64; i++) {
+                if (board[i] == ' ') {
+                        empty++;
+                } else {
+                        if (empty) {
+                                fen += empty;
+                        }
+                        fen += board[i];
+                        empty = 0;
+                }
+
+                if ((i + 1) % 8 == 0 && i != 63) {
+                        if (empty) {
+                                fen += empty;
+                        }
+                        fen += "/";
+                        empty = 0;
+
+                }
+        }
+
+        fen += " ";
+        if (turn == 0) {
+                fen += "w";
+        } else {
+                fen += "b";
+        }
+
+        return fen;
+}
 
 
 function makePiece(piece, index, board) {
@@ -159,13 +220,13 @@ function castle(king_index, board) {
 
 
 }
+
 // TODO: add horsie check
 // TODO: add king check
 // TODO: debug down left diagonal (king bottom left of queen)
 // TODO: debug thinking king is in check when its not (hard to recreate):
 // Screenshot 2024-05-05 at 5.25.07PM.png
 // Screenshot 2024-05-05 at 5.42.14PM.png
-
 function inCheck(img, game, from, to) {
 
         var newGame = game.slice();
